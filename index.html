@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Belote – Compteur & stats</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;800&display=swap">
+<style>
+:root{--bg:#eef2ee;--fg:#12281f;--card:#fff;--line:#cfd9d2;--acc:#1f5c43;--onacc:#fff;--a:#a8690f;--b:#b0382f;--mut:#5b6e64;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f2a20;--fg:#eaf1ec;--card:#173a2c;--line:#2b5645;--acc:#7fd1a3;--onacc:#0f2a20;--a:#f0b94d;--b:#f08a80;--mut:#9fb8aa;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f2a20;--fg:#eaf1ec;--card:#173a2c;--line:#2b5645;--acc:#7fd1a3;--onacc:#0f2a20;--a:#f0b94d;--b:#f08a80;--mut:#9fb8aa;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-tap-highlight-color:transparent}
+#app{max-width:520px;margin:0 auto;padding:16px 14px 40px}
+h1,h2,h3,.num{font-family:Fraunces,Georgia,serif;margin:0}
+h1{font-size:2.2rem;font-weight:800;line-height:1.05}
+h2{font-size:1.4rem;margin:0 0 10px}
+h3{font-size:1.05rem;margin:18px 0 8px}
+button,select,input{font:inherit;color:inherit}
+.btn{display:block;width:100%;min-height:56px;border:0;border-radius:14px;background:var(--acc);color:var(--onacc);font-weight:700;font-size:1.1rem;margin:10px 0;cursor:pointer}
+.btn.alt{background:transparent;color:var(--fg);border:2px solid var(--line)}
+.btn.sm{min-height:44px;font-size:1rem}
+.back{background:none;border:0;color:var(--mut);font-size:1rem;padding:8px 0;min-height:44px;cursor:pointer}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:10px 0}
+.item{display:flex;justify-content:space-between;align-items:center;width:100%;min-height:56px;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 14px;margin:8px 0;cursor:pointer}
+input[type=text],input[type=number],select{width:100%;min-height:52px;border:2px solid var(--line);border-radius:12px;background:var(--card);padding:0 12px;margin:6px 0 12px}
+label{font-weight:600;font-size:.95rem}
+.tabs{display:flex;gap:6px;margin:8px 0 12px}
+.tabs button{flex:1;min-height:48px;border:2px solid var(--line);background:transparent;border-radius:12px;font-weight:700;cursor:pointer}
+.tabs button.on{background:var(--acc);color:var(--onacc);border-color:var(--acc)}
+.score{display:flex;gap:10px}
+.score>div{flex:1;border-radius:14px;padding:6px 10px;background:var(--card);border:2px solid var(--line);text-align:center}
+.score .tA{border-color:var(--a)}.score .tB{border-color:var(--b)}
+.score .num{font-size:2rem;font-weight:800;line-height:1}
+.tA .num,.cA{color:var(--a)}.tB .num,.cB{color:var(--b)}
+.small{font-size:.85rem;color:var(--mut)}
+.prow{display:flex;justify-content:space-between;align-items:center;min-height:46px;border-bottom:1px solid var(--line)}
+.prow:last-child{border:0}
+.plus{width:42px;height:42px;line-height:1;border-radius:50%;border:0;background:var(--acc);color:var(--onacc);font-size:1.5rem;font-weight:700;cursor:pointer}
+.kv{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px dashed var(--line)}
+.kv:last-child{border:0}.kv b{text-align:right}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:6px 0 14px}
+.seg button{min-height:52px;border:2px solid var(--line);background:var(--card);border-radius:12px;font-weight:600;cursor:pointer}
+.seg button.on{background:var(--acc);color:var(--onacc);border-color:var(--acc)}
+.seg.s4{grid-template-columns:repeat(4,1fr)}.seg.s3{grid-template-columns:repeat(3,1fr)}
+.seg .red{color:#c0392b}.seg button.on.red{color:#ffd9d4}
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:flex-end;justify-content:center;z-index:20}
+#modal.open{display:flex}
+#modal .sheet{background:var(--bg);width:100%;max-width:520px;max-height:92%;overflow:auto;border-radius:20px 20px 0 0;padding:18px 14px calc(18px + env(safe-area-inset-bottom,0px))}
+#modal .sheet{padding:12px 12px calc(12px + env(safe-area-inset-bottom,0px))}#modal h2{font-size:1.15rem;margin:0 0 4px}#modal label{font-size:.8rem;color:var(--mut)}#modal .seg{margin:3px 0 8px;gap:6px}#modal .seg button{min-height:42px;font-size:.95rem}#modal .err{min-height:0}#modal p{margin:6px 0}
+.ic{width:44px!important;min-height:44px!important;margin:0!important;padding:0!important;display:inline-flex;align-items:center;justify-content:center}
+.msg{background:var(--acc);color:var(--onacc);border-radius:12px;padding:10px 14px;margin:10px 0;font-weight:600}
+.err{color:var(--b);font-weight:600;min-height:1.4em}
+@media print{:root:root:root{--bg:#fff;--fg:#000;--card:#fff;--line:#999;--mut:#444;--a:#a8690f;--b:#b0382f;--acc:#1f5c43}.card{break-inside:avoid}.pbreak{break-before:page;page-break-before:always}.noprint,.tabs,.back,button{display:none!important}body{background:#fff;color:#000}.card,.score>div{background:#fff;color:#000;border-color:#999}}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#1f5c43">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Belote Stats">
+</head>
+<body>
+<div id="app"></div>
+<div id="modal"></div>
+<script>
+var S=load(),V={v:"home"},M=null,TAB="count",MSG="";
+function load(){try{return JSON.parse(localStorage.getItem("belote1"))||{players:[],matches:[]}}catch(e){return{players:[],matches:[]}}}
+function save(){try{localStorage.setItem("belote1",JSON.stringify(S))}catch(e){}}
+var $=function(s){return document.querySelector(s)};
+var pn=function(id){var p=S.players.find(function(p){return p.id==id});return p?p.name:"?"};
+var uid=function(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)};
+var SUITS=[["♥","Cœur",1],["♠","Pique",0],["♦","Carreau",1],["♣","Trèfle",0]];
+function rnd(n){var u=n%10,b=n-u;return u<=2?b:u<=7?b+5:b+10}
+function curM(){return S.matches.find(function(m){return m.id==V.id})}
+function teamOf(m,p){return m.teams[0].indexOf(p)>=0?0:1}
+function gScore(g){if(g.final)return g.final.slice();var s=[0,0];g.takes.forEach(function(t){s[t.t]+=t.mine;s[1-t.t]+=t.opp});return s}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+var pc=function(a,b){return(b?(100*a/b).toFixed(1):"0.0").replace(".",",")+" %"};
+var sg=function(n){return(n>0?"+":"")+n};
+
+/* ---------- statistiques ---------- */
+function st(L){
+  var s=L.filter(function(t){return t.type=="std"||t.type=="capot"});
+  var sk=s.filter(function(t){return!t.u&&t.type=="std"});
+  var c=function(k){return L.filter(function(t){return t.type==k}).length};
+  return{n:L.length,s:s.length,avg:sk.length?sk.reduce(function(a,t){return a+t.mine},0)/sk.length:0,cap:c("capot"),chu:c("chute"),lit:c("litige"),pm:L.reduce(function(a,t){return a+t.mine},0),po:L.reduce(function(a,t){return a+t.opp},0)}
+}
+function sblock(x,tot,bil){
+  var ln=function(t){return'<div class="kv"><span>'+t+'</span></div>'};
+  var avg=x.avg?Math.round(x.avg)+" pts moy.":"– pts";
+  var h=ln(pc(x.n,tot)+" prises ("+x.n+") dont "+pc(x.s,x.n)+" succès ("+x.s+", "+avg+")")+ln(pc(x.cap,x.n)+" capots ("+x.cap+") - "+pc(x.chu,x.n)+" 160 ("+x.chu+") - "+pc(x.lit,x.n)+" litiges ("+x.lit+")");
+  if(bil)h+=ln("Bilan des points : "+x.pm+" - "+x.po+" ("+sg(x.pm-x.po)+")");
+  return h;
+}
+
+/* ---------- vues ---------- */
+function render(){
+  var h="";
+  if(V.v=="home")h=home();else if(V.v=="players")h=players();else if(V.v=="pdetail")h=pdetail();else if(V.v=="newm")h=newm();else if(V.v=="imp")h=imp();else h=match();
+  $("#app").innerHTML=h;
+}
+function home(){
+  var ic=function(a,v,l,path,pri){return'<button class="btn '+(pri?"":"alt ")+'sm ic" data-a="'+a+'"'+(v?' data-v="'+v+'"':"")+' aria-label="'+l+'" title="'+l+'"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+path+"</svg></button>"};
+  var item=function(m){
+    var w=[0,0];m.games.forEach(function(g){if(g.done){var s=gScore(g);w[s[0]>s[1]?0:1]++}});
+    return'<div style="display:flex;gap:8px;align-items:center"><button class="item" style="flex:1" data-a="open" data-v="'+m.id+'"><span><b>'+esc(m.name)+'</b><br><span class="small">'+esc(pn(m.teams[0][0]))+" & "+esc(pn(m.teams[0][1]))+" vs "+esc(pn(m.teams[1][0]))+" & "+esc(pn(m.teams[1][1]))+'</span></span><span class="num">'+w[0]+" – "+w[1]+'</span></button><button class="btn alt sm" style="width:52px;margin:0" data-a="delm" data-v="'+m.id+'" aria-label="Supprimer le match">✕</button></div>'
+  };
+  var all=S.matches.slice().reverse(),cur=all.filter(function(m){return!m.closed}),dn=all.filter(function(m){return m.closed});
+  return'<div style="display:flex;justify-content:space-between;align-items:center;margin:28px 0 6px;gap:8px"><h1>Belote</h1><div style="display:flex;gap:6px">'+ic("go","newm","Nouveau match",'<path d="M12 5v14M5 12h14"/>',1)+ic("go","players","Joueurs",'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/>')+ic("bex","","Exporter",'<path d="M12 15V4M7.5 8.5L12 4l4.5 4.5M5 14v5h14v-5"/>')+ic("bim","","Importer",'<path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M5 14v5h14v-5"/>')+'</div></div><p class="small" style="margin:0 0 6px">Comptez les prises, suivez les statistiques.</p>'+(cur.length?"<h3>Parties en cours</h3>"+cur.map(item).join(""):"")+(dn.length?"<h3>Parties terminées</h3>"+dn.map(item).join(""):"")+(all.length?"":'<p class="small">Aucun match pour le moment : touchez + pour en créer un.</p>');
+}
+function players(){
+  var l=S.players.map(function(p){return'<div style="display:flex;gap:8px;align-items:center"><button class="item" style="flex:1" data-a="pd" data-v="'+p.id+'"><b>'+esc(p.name)+'</b><span class="small">Statistiques ›</span></button><button class="btn alt sm" style="width:52px;margin:0" data-a="delp" data-v="'+p.id+'" aria-label="Supprimer le joueur">✕</button></div>'}).join("")||'<p class="small">Aucun joueur. Ajoutez le premier ci-dessus.</p>';
+  return'<button class="back" data-a="go" data-v="home">‹ Accueil</button><h2>Joueurs</h2><div class="card"><label>Nouveau joueur</label><input type="text" id="pname" placeholder="Prénom" maxlength="24"><button class="btn sm" data-a="addp">Ajouter le joueur</button></div>'+l;
+}
+function pdetail(){
+  var id=V.pid,L=[],mj=0,gp=0,gw=0;
+  S.matches.forEach(function(m){
+    if(m.teams[0].concat(m.teams[1]).indexOf(id)<0)return;mj++;var t=teamOf(m,id);
+    m.games.forEach(function(g){g.takes.forEach(function(k){if(k.p==id)L.push(k)});if(g.done){gp++;var s=gScore(g);if(s[t]>s[1-t])gw++}});
+  });
+  var tot=0;S.matches.forEach(function(m){if(m.teams[0].concat(m.teams[1]).indexOf(id)>=0)m.games.forEach(function(g){tot+=g.takes.length})});
+  return'<button class="back" data-a="go" data-v="players">‹ Joueurs</button><h2>'+esc(pn(id))+'</h2><div class="card"><div class="kv"><span>Matchs joués</span><b>'+mj+'</b></div><div class="kv"><span>Parties gagnées</span><b>'+gw+" / "+gp+"</b></div></div><h3>Prises (tous matchs)</h3><div class=\"card\">"+sblock(st(L),tot,1)+"</div>";
+}
+function newm(){
+  var o='<option value="">Choisir…</option>'+S.players.map(function(p){return'<option value="'+p.id+'">'+esc(p.name)+"</option>"}).join("");
+  var sel=function(i,l){return"<label>"+l+'</label><select id="s'+i+'">'+o+"</select>"};
+  return'<button class="back" data-a="go" data-v="home">‹ Accueil</button><h2>Nouveau match</h2><label>Nom du match</label><input type="text" id="mname" placeholder="Soirée du samedi" maxlength="40"><div class="card"><h3 class="cA" style="margin-top:0">Équipe A</h3>'+sel(0,"Joueur 1")+sel(1,"Joueur 2")+'</div><div class="card"><h3 class="cB" style="margin-top:0">Équipe B</h3>'+sel(2,"Joueur 3")+sel(3,"Joueur 4")+'</div><div class="err" id="err">'+(S.players.length<4?"Il faut au moins 4 joueurs : ajoutez-les dans la liste des joueurs.":"")+'</div><button class="btn" data-a="mk">Démarrer le match</button>';
+}
+function match(){
+  var m=curM();if(!m)return home();
+  if(m.closed&&TAB=="count")TAB="ov";
+  var tb=function(k,l){return'<button data-a="tab" data-v="'+k+'" class="'+(TAB==k?"on":"")+'">'+l+"</button>"};
+  var h='<div class="noprint"><button class="back" data-a="go" data-v="home">‹ Accueil</button></div><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px"><h2 style="margin:0">'+esc(m.name)+(m.closed?' <span class="small">· terminé</span>':"")+'</h2><button class="btn alt sm noprint" style="width:auto;margin:0;padding:0 10px" data-a="print" aria-label="Exporter en PDF" title="Exporter en PDF"><svg width="24" height="28" viewBox="0 0 26 30" aria-hidden="true"><path d="M3 1h14l7 7v21H3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M17 1v7h7" fill="none" stroke="currentColor" stroke-width="2"/><text x="13" y="23" font-size="8" font-weight="700" text-anchor="middle" fill="currentColor" font-family="system-ui,sans-serif">PDF</text></svg></button></div><div class="tabs">'+(m.closed?"":tb("count","Compter"))+tb("ov","Overview")+tb("det","Détails")+"</div>";
+  var body=PR?overview(m)+'<div class="pbreak"><h3>Détail des parties</h3>'+details(m)+"</div>":TAB=="count"?count(m):TAB=="det"?details(m):overview(m);
+  if(PR)return h+body+'<button class="btn alt noprint" data-a="unpr">Retour</button>';
+  var ib=function(a,ic,l){return'<button class="btn alt noprint" style="flex:1;margin:0;font-size:1.4rem" data-a="'+a+'" aria-label="'+l+'" title="'+l+'">'+ic+"</button>"};
+  if(TAB=="count"&&!m.closed)return h+body+'<div style="display:flex;gap:8px;margin-top:12px">'+ib("undoask","↶","Annuler la dernière prise")+ib("closeask","🏁","Clore le match")+ib("resetask","🔄","Réinitialiser la partie en cours")+"</div>";
+  return h+body+(m.closed?'<button class="btn alt noprint" data-a="reopen">Rouvrir le match</button>':"");
+}
+function details(m){
+  var nm=function(i){return esc(pn(m.teams[i][0]))+" / "+esc(pn(m.teams[i][1]))};
+  var sh=function(t){return esc(pn(t.p))+" "+(t.type=="std"?(t.u?"✓":t.score):t.type=="capot"?"capot":t.type=="chute"?"160":"litige")};
+  var gs=m.games.map(function(g,i){return{g:g,n:i+1}}).filter(function(x){return x.g.takes.length||x.g.done}).reverse();
+  if(!gs.length)return'<div class="card small">Aucune partie pour le moment.</div>';
+  var h="";
+  gs.forEach(function(x){
+    var s=gScore(x.g),w=s[0]>s[1]?0:1,k=x.g.takes.length;
+    var row=function(i){return'<div class="kv"><span class="'+(i?"cB":"cA")+'"><b>'+nm(i)+"</b>"+(x.g.done&&w==i?" 🏆":"")+'</span><b class="num">'+s[i]+"</b></div>"};
+    h+='<div class="card"><b>Partie '+x.n+'</b> <span class="small">· '+(x.g.done?"terminée":"en cours")+" · "+k+" prise"+(k>1?"s":"")+"</span>"+row(0)+row(1)+(k?'<div class="small" style="margin-top:6px">'+x.g.takes.map(sh).join(" · ")+"</div>":"")+"</div>";
+  });
+  return h;
+}
+function tn(m,i){return esc(pn(m.teams[i][0]))+" / "+esc(pn(m.teams[i][1]))}
+function tk(t){return t.type=="std"?(t.u?"✓":"✓("+t.score+")"):t.type=="capot"?"250":t.type=="chute"?"160":"81"}
+function count(m){
+  var g=m.games[m.games.length-1],s=gScore(g),W=[0,0];
+  m.games.forEach(function(x){if(x.done){var y=gScore(x);W[y[0]>y[1]?0:1]++}});
+  var team=function(i){return'<div class="card"><b class="'+(i?"cB":"cA")+'">'+tn(m,i)+"</b>"+m.teams[i].map(function(p){return'<div class="prow"><div><b>'+esc(pn(p))+'</b> <span class="small" style="margin-left:6px">'+g.takes.filter(function(t){return t.p==p}).map(tk).join("  ")+'</span></div><button class="plus" data-a="plus" data-v="'+p+'" aria-label="Saisir une prise pour '+esc(pn(p))+'">+</button></div>'}).join("")+"</div>"};
+  var last=g.takes.slice(-3).reverse().map(function(t){var su=SUITS.find(function(x){return x[1]==t.suit});return'<div class="kv"><span>'+esc(pn(t.p))+" "+(su?su[0]:"")+" · "+lbl(t)+"</span><b>"+(t.t?t.opp+" / "+t.mine:t.mine+" / "+t.opp)+"</b></div>"}).join("");
+  return(MSG?'<div class="msg">'+MSG+"</div>":"")+'<p class="small" style="margin:0 0 6px">Partie '+(W[0]+W[1]+1)+" · objectif 1 000 points · parties gagnées "+W[0]+" – "+W[1]+'</p><div class="score"><div class="tA"><div class="small">'+tn(m,0)+'</div><div class="num">'+s[0]+'</div></div><div class="tB"><div class="small">'+tn(m,1)+'</div><div class="num">'+s[1]+"</div></div></div>"+(g.pending?'<p class="small">'+g.pending+" points en jeu (litige) pour la prochaine prise.</p>":"")+team(0)+team(1)+(last?'<h3>Dernières prises</h3><div class="card">'+last+'</div><p class="small">Format : points de '+tn(m,0)+' / '+tn(m,1)+'.</p>':"");
+}
+function lbl(t){return{std:t.u?"Succès":"Score "+t.score,capot:"Capot",chute:"Chute 160",litige:"Litige"}[t.type]+(t.bel?" + Belote":"")}
+function overview(m){
+  var done=m.games.filter(function(g){return g.done}),all=[];
+  m.games.forEach(function(g){all=all.concat(g.takes)});
+  var tot=all.length,tp=[0,0];
+  m.games.forEach(function(g){var s=gScore(g);tp[0]+=s[0];tp[1]+=s[1]});
+  var pts=tp[0]+tp[1],w=[0,0],lost=[[],[]];
+  done.forEach(function(g){var s=gScore(g),i=s[0]>s[1]?0:1;w[i]++;lost[1-i].push(s[1-i])});
+  var ln=function(t){return'<div class="kv"><span>'+t+'</span></div>'};
+  var r=function(a,b){return'<div class="kv"><span>'+a+"</span><b>"+b+"</b></div>"};
+  var nm=function(i){return esc(pn(m.teams[i][0]))+" / "+esc(pn(m.teams[i][1]))};
+  var f=function(n){return n.toLocaleString("fr-FR")};
+  var pl=function(n,s){return n+" "+s+(n>1?"s":"")};
+  var tl=function(i){return'<b class="'+(i?"cB":"cA")+'">'+nm(i)+"</b> : "+pl(w[i],"partie")+" ("+f(tp[i])+" pts)"};
+  var tn2=function(i){return esc(pn(m.teams[i][0]))+" & "+esc(pn(m.teams[i][1]))},sent;
+  if(m.closed){
+    var ym=String(m.name).match(/\b(20\d\d)\b/),who=ym?"L’année "+ym[1]+" a été remportée par ":"Ce match a été remporté par ";
+    sent=w[0]==w[1]?"Égalité parfaite entre "+tn2(0)+" et "+tn2(1)+" ("+w[0]+" parties partout) !!!":who+"<b>"+tn2(w[0]>w[1]?0:1)+"</b> !!!";
+  }else{
+    var ld=w[0]>=w[1]?0:1;
+    sent=w[0]==w[1]?"Match à égalité, "+w[0]+" à "+w[1]+", entre "+tn2(0)+" et "+tn2(1)+".":"L’équipe <b>"+tn2(ld)+"</b> mène "+w[ld]+" à "+w[1-ld]+" face à "+tn2(1-ld)+".";
+  }
+  sent='<div class="card" style="font-weight:600;text-align:center">'+sent+"</div>";
+  var h=sent+'<h3 style="margin-top:6px">Stats globales</h3><div class="card">'+ln(pl(done.length,"partie")+" - "+pl(tot,"prise")+" - "+pl(pts,"point"))+ln(tl(0))+ln(tl(1))+"</div>";
+  h+="<h3>Par joueur</h3>";
+  m.teams[0].concat(m.teams[1]).forEach(function(p){h+='<div class="card"><b class="'+(teamOf(m,p)?"cB":"cA")+'">'+esc(pn(p))+"</b>"+sblock(st(all.filter(function(t){return t.p==p})),tot,1)+"</div>"});
+  h+="<h3>Par équipe</h3>";
+  [0,1].forEach(function(i){var avg=lost[i].length?Math.round(lost[i].reduce(function(a,b){return a+b},0)/lost[i].length):"–";h+='<div class="card"><b class="'+(i?"cB":"cA")+'">'+nm(i)+"</b>"+sblock(st(all.filter(function(t){return t.t==i})),tot)+ln("Moyenne de points en partie perdue : "+avg)+"</div>"});
+  h+="<h3>Stats amusantes</h3>";
+  if(!done.length)return h+'<div class="card small">Terminez une partie pour afficher ces stats.</div>';
+  var nt=done.map(function(g){return g.takes.length}),sc=[],gaps=done.map(function(g){var s=gScore(g);sc.push(s[0],s[1]);return{s:s,d:Math.abs(s[0]-s[1])}});
+  gaps.sort(function(a,b){return a.d-b.d});
+  var fmt=function(x){var a=x.s[0]>=x.s[1]?0:1,b=1-a;return nm(a)+" "+x.s[a]+" – "+nm(b)+" "+x.s[b]};
+  return h+'<div class="card">'+ln((nt.reduce(function(a,b){return a+b},0)/nt.length).toFixed(1).replace(".",",")+" prises en moyenne par partie (Max : "+Math.max.apply(0,nt)+" - Min : "+Math.min.apply(0,nt)+")")+ln("Score max : "+Math.max.apply(0,sc)+" - Score min : "+Math.min.apply(0,sc))+ln("Plus grand écart : "+fmt(gaps[gaps.length-1]))+ln("Plus petit écart : "+fmt(gaps[0]))+"</div>";
+}
+
+/* ---------- modal de prise ---------- */
+function modal(){
+  var el=$("#modal");
+  if(!M){el.className="";el.innerHTML="";return}
+  var h="";
+  if(M.k=="end"){
+    h='<h2>Partie terminée</h2><p style="font-size:1.15rem">'+M.txt+'</p><button class="btn" data-a="mclose">Continuer</button>';
+  }else if(M.k=="delp"){
+    h='<h2>Supprimer '+esc(pn(M.id))+' ?</h2><p>Le joueur sera retiré de la liste.</p><button class="btn" data-a="delpok">Oui, supprimer</button><button class="btn alt" data-a="mclose">Non, garder</button>';
+  }else if(M.k=="info"){
+    h='<h2>Suppression impossible</h2><p>'+M.txt+'</p><button class="btn" data-a="mclose">Compris</button>';
+  }else if(M.k=="bex"){
+    h='<h2>Exporter</h2><button class="btn" data-a="bdl">Télécharger un fichier</button><p class="small">Ou copiez le texte de la sauvegarde :</p><textarea id="bout" rows="2" readonly style="'+TA+'">'+enc()+'</textarea><button class="btn alt" data-a="bcopy">Copier le texte</button><div class="small" id="bmsg"></div><button class="btn alt" data-a="mclose">Fermer</button>';
+  }else if(M.k=="bim"){
+    h='<h2>Importer</h2><label class="btn" style="cursor:pointer;text-align:center;line-height:56px;color:var(--onacc);font-size:1.1rem;font-weight:700">Choisir un fichier<input type="file" id="bfile" accept=".json,.txt,application/json,text/plain" style="display:none"></label><p class="small">Ou collez le texte de la sauvegarde :</p><textarea id="btxt" rows="3" style="'+TA+'"></textarea><div class="err" id="err"></div><button class="btn alt" data-a="brest">Restaurer le texte</button><button class="btn alt" data-a="oldimp">Importer d’anciennes parties (texte avec scores)</button><button class="btn alt" data-a="mclose">Fermer</button>';
+  }else if(M.k=="reset"){
+    h='<h2>Réinitialiser la partie en cours ?</h2><p>Les prises de la partie en cours seront effacées et les scores remis à 0. Les parties terminées ne changent pas.</p><button class="btn" data-a="resetok">Oui, réinitialiser</button><button class="btn alt" data-a="mclose">Non, garder</button>';
+  }else if(M.k=="close"){
+    h='<h2>Clore ce match ?</h2><p>Plus aucune prise ni partie ne pourra être ajoutée. Seuls l’overview et les détails resteront consultables. Une partie non terminée ne comptera pas dans les parties.</p><button class="btn" data-a="closeok">Oui, clore le match</button><button class="btn alt" data-a="mclose">Non, continuer</button>';
+  }else if(M.k=="del"){
+    h='<h2>Supprimer ce match ?</h2><p>Toutes ses parties seront perdues.</p><button class="btn" data-a="delok">Oui, supprimer</button><button class="btn alt" data-a="mclose">Non, garder</button>';
+  }else if(M.k=="undo"){
+    h='<h2>Annuler la dernière prise ?</h2><p>Cette prise sera supprimée et les scores seront recalculés.</p><button class="btn" data-a="undook">Oui, annuler la prise</button><button class="btn alt" data-a="mclose">Non, garder</button>';
+  }else{
+    var m=curM(),i=teamOf(m,M.taker);
+    var b=function(k,v,l,c){return'<button class="'+(M[k]===v?"on ":"")+(c||"")+'" data-a="m'+k+'" data-v="'+v+'">'+l+"</button>"};
+    h='<h2>Prise de '+esc(pn(M.taker))+'</h2><label>Couleur</label><div class="seg s4">'+SUITS.map(function(x){return b("suit",x[1],x[0],x[2]?"red":"")}).join("")+'</div><label>Résultat</label><div class="seg s4">'+b("type","std","Score")+b("type","capot","Capot")+b("type","chute","160")+b("type","litige","Litige")+'</div><label>Belote / Rebelote (+20)</label><div class="seg s3">'+b("bel",0,"Aucune")+b("bel",1,"Preneur")+b("bel",2,"Adverse")+"</div>";
+    if(M.type=="std")h+='<label>Points du preneur (belote ajoutée, total ≥ 82)</label><div style="display:flex;align-items:center;gap:8px;margin:3px 0 6px"><div class="num" id="sc" style="flex:1;font-size:1.8rem;line-height:1.3;text-align:center;border:2px solid var(--line);border-radius:12px;background:var(--card)">—</div><button class="btn alt sm" style="width:auto;margin:0;padding:0 18px" data-a="kp" data-v="x" aria-label="Effacer">⌫</button></div><div class="seg" style="grid-template-columns:repeat(5,1fr)">'+["1","2","3","4","5","6","7","8","9","0"].map(function(d){return'<button data-a="kp" data-v="'+d+'">'+d+'</button>'}).join("")+'</div><p class="small" id="prev" style="min-height:1.2em"></p>';
+    h+='<div class="err" id="merr"></div><div style="display:flex;gap:8px;margin-top:4px"><button class="btn alt" style="flex:1;margin:0" data-a="mclose">Fermer</button><button class="btn" style="flex:2;margin:0" data-a="mok">Enregistrer la prise</button></div>';
+  }
+  el.innerHTML='<div class="sheet">'+h+"</div>";el.className="open";
+  if(M.type=="std")prev();
+}
+function prev(){
+  var p=$("#prev"),d=$("#sc"),v=parseInt(M.score,10);
+  if(d)d.textContent=M.score||"—";
+  if(!p)return;
+  if(!(v>=0&&v<=162)){p.textContent="";return}
+  var t=v+(M.bel==1?20:0),o=162-v+(M.bel==2?20:0);
+  p.textContent="Preneur "+rnd(t)+" pts · adversaire "+rnd(o)+" pts"+(M.bel?" (belote comprise)":"")+(t<82?" · moins de 82 : chute":"");
+}
+function addTake(){
+  var m=curM(),g=m.games[m.games.length-1],t=teamOf(m,M.taker),type=M.type,mine=0,opp=0,score=0;
+  if(!M.suit)return"Choisissez une couleur.";
+  if(!type)return"Choisissez le type de résultat.";
+  if(type=="std"){score=parseInt(M.score,10);if(isNaN(score))return"Saisissez le score du preneur.";if(score>162)return"Le score ne peut pas dépasser 162.";var bt=M.bel==1?20:0,bo=M.bel==2?20:0;if(score+bt<82)return"Il faut au moins 82 points, belote comprise (sinon : chute).";mine=rnd(score+bt);opp=rnd(162-score+bo)}
+  else if(type=="capot")mine=250;else if(type=="chute")opp=160;else opp=80;
+  var pb=g.pending||0,np=pb;
+  if(type=="litige")np=pb+80;
+  else if(pb){if(type=="std"||type=="capot")mine+=pb;else opp+=pb;np=0}
+  var bel=M.bel||0;if(type!="std"){if(bel==1)mine+=20;if(bel==2)opp+=20}
+  g.takes.push({p:M.taker,t:t,suit:M.suit,type:type,score:score,bel:bel,mine:mine,opp:opp,pb:pb});
+  g.pending=np;
+  var s=gScore(g);
+  if(s[0]>=1000||s[1]>=1000){g.done=true;var w=s[0]>s[1]?0:1;MSG="";END=esc(pn(m.teams[w][0]))+" et "+esc(pn(m.teams[w][1]))+" ont gagné "+s[w]+" à "+s[1-w]+".";m.games.push({takes:[],pending:0})}else MSG="";
+  save();return"";
+}
+function undo(){
+  var m=curM(),g=m.games[m.games.length-1];
+  if(!g.takes.length&&m.games.length>1){m.games.pop();g=m.games[m.games.length-1];g.done=false}
+  var t=g.takes.pop();if(t)g.pending=t.pb;
+  MSG="";save();
+}
+
+/* ---------- import ---------- */
+var END=null,PR=0;
+function imp(){
+  return'<button class="back" data-a="go" data-v="home">‹ Accueil</button><h2>Importer des parties</h2><p class="small">Collez le texte : une ligne « Partie » suivie des 4 noms (1er score = joueurs 2 et 4, 2e score = joueurs 1 et 3), puis chaque partie avec ses prises par joueur et son score final « A - B ». Sans ligne « Partie » + noms, les 4 noms sont déduits de la première partie (« Nous » = joueurs 2 et 4). Un succès sans score (« 1 ») est accepté. Les couleurs et belotes ne sont pas importées.</p><label>Nom du match</label><input type="text" id="iname" value="Import" maxlength="40"><label>Texte à importer</label><textarea id="itxt" rows="12" style="width:100%;border:2px solid var(--line);border-radius:12px;background:var(--card);color:var(--fg);padding:10px;font:inherit;margin:6px 0 12px"></textarea><div class="err" id="err"></div><button class="btn" data-a="imok">Importer</button>';
+}
+function doImport(){
+  var nm=$("#iname").value.trim()||"Import",L=$("#itxt").value.split(/\r?\n/).map(function(x){return x.trim()}),i=0,names=[];
+  while(i<L.length&&!/^partie$/i.test(L[i]))i++;
+  if(i<L.length){for(i++;i<L.length&&names.length<4;i++)if(L[i])names.push(L[i])}
+  else{
+    i=0;
+    while(i<L.length&&!/^partie\s+\d/i.test(L[i]))i++;
+    for(var j=i+1;j<L.length&&names.length<4;j++){var w=L[j].split(/\s+/)[0];if(/^[^\d(]/.test(w)&&!/^partie$/i.test(w)&&names.indexOf(w)<0)names.push(w)}
+    i=0;
+  }
+  if(names.length<4)return"Les 4 noms de joueurs sont introuvables.";
+  var G=[],cur=null;
+  for(;i<L.length;i++){
+    var l=L[i];if(!l)continue;
+    var mh=l.match(/^partie\s+(\d+)/i);
+    if(mh){cur={n:+mh[1],takes:[],fin:null};G.push(cur);continue}
+    if(!cur)continue;
+    var ms=l.match(/^(\d+)\s*-\s*(\d+)$/);
+    if(ms){cur.fin=[+ms[1],+ms[2]];continue}
+    var pi=names.findIndex(function(n){return l.toLowerCase().indexOf(n.toLowerCase())==0});
+    if(pi<0)continue;
+    var rest=l.slice(names[pi].length),re=/(?:1\s*)?\((\d+)\)|\b(160|250|81|1)\b/g,x;
+    while((x=re.exec(rest)))cur.takes.push({pi:pi,v:x[1]?+x[1]:+x[2],std:!!x[1]});
+  }
+  if(!G.length)return"Aucune partie trouvée.";
+  var bad=G.find(function(g){return!g.fin});
+  if(bad)return"Score final manquant pour la partie "+bad.n+".";
+  G.sort(function(a,b){return a.n-b.n});
+  var ids=names.map(function(n){var p=S.players.find(function(p){return p.name.toLowerCase()==n.toLowerCase()});if(!p){p={id:uid(),name:n};S.players.push(p)}return p.id});
+  var m={id:uid(),name:nm,teams:[[ids[1],ids[3]],[ids[0],ids[2]]],games:[]};
+  G.forEach(function(g){
+    var tk=g.takes.map(function(t){
+      var mine=0,opp=0,type,sc=0,u=0;
+      if(t.v==1&&!t.std){type="std";u=1}
+      else if(t.std&&t.v>162){type="capot";mine=250}
+      else if(t.std){type="std";sc=t.v;mine=rnd(sc);opp=rnd(162-sc)}
+      else if(t.v==250){type="capot";mine=250}
+      else if(t.v==160){type="chute";opp=160}
+      else{type="litige";opp=80}
+      return{p:ids[t.pi],t:t.pi%2==1?0:1,suit:"",type:type,score:sc,bel:0,mine:mine,opp:opp,pb:0,u:u};
+    });
+    m.games.push({takes:tk,pending:0,done:true,final:g.fin});
+  });
+  m.games.push({takes:[],pending:0});
+  S.matches.push(m);save();V={v:"match",id:m.id};TAB="ov";MSG="";
+  return"";
+}
+
+/* ---------- sauvegarde ---------- */
+var TA="width:100%;border:2px solid var(--line);border-radius:12px;background:var(--card);color:var(--fg);padding:10px;font:inherit;font-size:.8rem;margin:6px 0 10px";
+function enc(){return"BELOTE1:"+btoa(unescape(encodeURIComponent(JSON.stringify(S))))}
+function dec(t){
+  t=String(t).trim();
+  if(!t)throw new Error("VIDE");
+  if(t.charAt(0)=="{")return JSON.parse(t.replace(/[“”„]/g,'"'));
+  t=t.replace(/^BELOTE1:/,"").replace(/\s+/g,"");
+  return JSON.parse(decodeURIComponent(escape(atob(t))));
+}
+function doRestore(txt){
+  var d;try{d=dec(txt!=null?txt:$("#btxt").value)}catch(e){return{ok:0,msg:e.message=="VIDE"?"Collez d’abord la sauvegarde dans le champ.":"Sauvegarde illisible : le texte semble incomplet ou modifié. Recopiez-le en entier."}}
+  if(!d||!Array.isArray(d.players)||!Array.isArray(d.matches))return{ok:0,msg:"Ce texte n’est pas une sauvegarde de l’appli."};
+  var np=0,nm=0;
+  d.players.forEach(function(p){if(p&&p.id&&p.name&&!S.players.some(function(x){return x.id==p.id})){S.players.push({id:p.id,name:String(p.name)});np++}});
+  d.matches.forEach(function(m){if(m&&m.id&&m.teams&&m.games&&!S.matches.some(function(x){return x.id==m.id})){S.matches.push(m);nm++}});
+  save();return{ok:1,msg:"Restauré : "+np+" joueur(s) et "+nm+" match(s) ajoutés."};
+}
+
+/* ---------- enregistrement de fichiers ---------- */
+function saveFile(name,blob){
+  var viaAnchor=function(){return new Promise(function(res,rej){try{var u=URL.createObjectURL(blob),a=document.createElement("a");a.href=u;a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(u);a.remove()},1500);res(true)}catch(e){rej(e)}})};
+  if(!(window.claude&&claude.use))return viaAnchor();
+  return claude.use("downloads").then(function(d){
+    if(!d)return viaAnchor();
+    return d.save({filename:name,data:blob}).then(function(){return true},function(er){if(er&&er.code=="declined")return false;throw er});
+  },viaAnchor);
+}
+/* ---------- export PDF ---------- */
+function pdfTk(t){return pn(t.p)+" "+(t.type=="std"?(t.u?"ok":t.score):t.type=="capot"?"250":t.type=="chute"?"160":"81")}
+function pdfBuild(m,J,withTakes){
+  var cl=function(t){return String(t).replace(/[\u202f\u00a0]/g," ").replace(/[–—]/g,"-").replace(/[’‘]/g,"'").replace(/[«»“”]/g,'"').replace(/[^\x20-\x7E\u00A1-\u00FF]/g,"")};
+  var doc=new J({unit:"mm",format:"a4"}),W=210,H=297,mg=14,y=mg+4;
+  var wr=function(t,w){return doc.splitTextToSize(cl(t),w)};
+  doc.setFont("helvetica","bold");doc.setFontSize(16);doc.text(cl(m.name),mg,y);y+=8;
+  var tmp=document.createElement("div");tmp.innerHTML=overview(m);
+  Array.prototype.forEach.call(tmp.children,function(el){
+    if(el.tagName=="H3"){y+=2;doc.setFont("helvetica","bold");doc.setFontSize(11);doc.text(cl(el.textContent),mg,y);y+=5.5;return}
+    if(String(el.className).indexOf("card")<0)return;
+    if(!el.querySelectorAll(".kv").length){doc.setFont("helvetica","bold");doc.setFontSize(10);var ls=wr(el.textContent,W-2*mg);doc.text(ls,mg,y);y+=ls.length*4.8+2;return}
+    Array.prototype.forEach.call(el.children,function(c){
+      var bold=c.tagName=="B";
+      doc.setFont("helvetica",bold?"bold":"normal");doc.setFontSize(9);
+      var t=bold?c.textContent:Array.prototype.map.call(c.children,function(x){return x.textContent}).join("  ");
+      var ls=wr(t,W-2*mg);doc.text(ls,mg,y);y+=ls.length*4.3;
+    });
+    y+=1.8;
+  });
+  doc.addPage();
+  y=mg+4;
+  doc.setFont("helvetica","bold");doc.setFontSize(13);doc.text("Detail des parties - "+cl(m.name),mg,y);y+=8;
+  var gs=m.games.map(function(g,i){return{g:g,n:i+1}}).filter(function(x){return x.g.takes.length||x.g.done}).reverse();
+  var fs=withTakes?6.6:7.6,lh=fs*0.44,colW=(W-2*mg-8)/2,col=0,y0=y;
+  var nmr=function(i){return pn(m.teams[i][0])+"/"+pn(m.teams[i][1])};
+  gs.forEach(function(x2){
+    var s=gScore(x2.g),w=s[0]>=s[1]?0:1;
+    var head="Partie "+x2.n+(x2.g.done?"":" (en cours)")+" : "+nmr(w)+" "+s[w]+" - "+s[1-w]+" "+nmr(1-w);
+    doc.setFontSize(fs);doc.setFont("helvetica","bold");
+    var hl=wr(head,colW),tl=[];
+    if(withTakes&&x2.g.takes.length){doc.setFont("helvetica","normal");tl=wr(x2.g.takes.map(pdfTk).join(", "),colW)}
+    var h=(hl.length+tl.length)*lh+(withTakes?1.6:0.7);
+    if(y+h>H-mg){if(col==0){col=1;y=y0}else{doc.addPage();col=0;y=mg+4;y0=y}}
+    var cx=mg+col*(colW+8);
+    doc.setFont("helvetica","bold");doc.setFontSize(fs);doc.text(hl,cx,y);
+    if(tl.length){doc.setFont("helvetica","normal");doc.text(tl,cx,y+hl.length*lh)}
+    y+=h;
+  });
+  return doc;
+}
+function exportPdf(){
+  var m=curM(),J=window.jspdf&&window.jspdf.jsPDF;
+  var fail=function(t){M={k:"info",txt:t};modal()};
+  if(!m)return;
+  if(!J)return fail("Le générateur de PDF n’a pas pu se charger. Vérifiez la connexion, rechargez la page et réessayez.");
+  var doc;
+  try{doc=pdfBuild(m,J,true);if(doc.getNumberOfPages()>2)doc=pdfBuild(m,J,false)}catch(e){return fail("La création du PDF a échoué.")}
+  var name=(String(m.name).replace(/[^\w\- ]+/g,"").trim()||"match")+".pdf";
+  saveFile(name,doc.output("blob")).catch(function(){fail("Le téléchargement du PDF a échoué.")});
+}
+
+/* ---------- événements ---------- */
+document.body.addEventListener("click",function(e){
+  var el=e.target.closest("[data-a]");if(!el)return;
+  var a=el.dataset.a,v=el.dataset.v;
+  if(a=="go"){V={v:v};TAB="count";MSG="";PR=0}
+  else if(a=="addp"){var n=$("#pname").value.trim();if(n){S.players.push({id:uid(),name:n});save()}}
+  else if(a=="pd")V={v:"pdetail",pid:v};
+  else if(a=="mk"){
+    var ids=[0,1,2,3].map(function(i){return $("#s"+i).value}),nm=$("#mname").value.trim();
+    if(!nm){$("#err").textContent="Donnez un nom au match.";return}
+    if(ids.some(function(x){return!x})){$("#err").textContent="Sélectionnez les 4 joueurs.";return}
+    if(new Set(ids).size<4){$("#err").textContent="Les 4 joueurs doivent être différents.";return}
+    var mm={id:uid(),name:nm,teams:[[ids[0],ids[1]],[ids[2],ids[3]]],games:[{takes:[],pending:0}]};
+    S.matches.push(mm);save();V={v:"match",id:mm.id};TAB="count";MSG="";
+  }
+  else if(a=="imok"){var ei=doImport();if(ei){$("#err").textContent=ei;return}}
+  else if(a=="open"){V={v:"match",id:v};TAB="count";MSG=""}
+  else if(a=="tab"){TAB=v;PR=0}
+  else if(a=="print"){exportPdf();return}
+  else if(a=="unpr"){PR=0}
+  else if(a=="plus"){M={k:"take",taker:v,suit:"",type:"std",score:"",bel:0};modal();return}
+  else if(a=="bcopy"){var bt=$("#bout"),bok=false;bt.focus();bt.select();try{bt.setSelectionRange(0,bt.value.length)}catch(x){}try{bok=document.execCommand("copy")}catch(x){}try{navigator.clipboard.writeText(bt.value);bok=true}catch(x){}$("#bmsg").textContent=bok?"Copié ("+bt.value.length+" caractères).":"Texte sélectionné : copiez-le manuellement.";return}
+  else if(a=="oldimp"){M=null;modal();V={v:"imp"}}
+  else if(a=="bdl"){
+    var fn="belote-sauvegarde-"+new Date().toISOString().slice(0,10)+".json";
+    saveFile(fn,new Blob([JSON.stringify(S)],{type:"application/json"})).then(function(ok){$("#bmsg").textContent=ok?"Fichier enregistré.":"Téléchargement annulé."},function(){$("#bmsg").textContent="Téléchargement impossible : copiez le texte."});
+    return;
+  }
+  else if(a=="brest"){var rr=doRestore();$("#err").textContent=rr.msg;$("#err").style.color=rr.ok?"var(--acc)":"";if(rr.ok)render();return}
+  else if(a=="kp"){var cur=String(M.score||"");M.score=v=="x"?cur.slice(0,-1):(cur+v).replace(/^0+/,"").slice(0,3);prev();return}
+  else if(a=="bex"){M={k:"bex"};modal();return}
+  else if(a=="bim"){M={k:"bim"};modal();return}
+  else if(a=="resetask"){M={k:"reset"};modal();return}
+  else if(a=="resetok"){var xm=curM(),xg=xm.games[xm.games.length-1];xg.takes=[];xg.pending=0;MSG="";save();M=null;modal()}
+  else if(a=="closeask"){M={k:"close"};modal();return}
+  else if(a=="closeok"){var cm=curM(),cg=cm.games[cm.games.length-1];if(!cg.takes.length&&cm.games.length>1)cm.games.pop();cm.closed=true;save();M=null;modal();TAB="ov"}
+  else if(a=="reopen"){var rm=curM(),rg=rm.games[rm.games.length-1];rm.closed=false;if(rg.done)rm.games.push({takes:[],pending:0});save();TAB="count"}
+  else if(a=="undoask"){M={k:"undo"};modal();return}
+  else if(a=="delask"){M={k:"del"};modal();return}
+  else if(a=="delm"){M={k:"del",id:v};modal();return}
+  else if(a=="delp"){
+    var nu=S.matches.filter(function(x){return x.teams[0].concat(x.teams[1]).indexOf(v)>=0}).length;
+    M=nu?{k:"info",txt:esc(pn(v))+" apparaît dans "+nu+(nu>1?" matchs":" match")+". Supprimez d’abord "+(nu>1?"ces matchs":"ce match")+"."}:{k:"delp",id:v};modal();return;
+  }
+  else if(a=="delpok"){S.players=S.players.filter(function(x){return x.id!=M.id});save();M=null;modal()}
+  else if(a=="delok"){var did=M.id||V.id;S.matches=S.matches.filter(function(x){return x.id!=did});save();M=null;modal();if(V.v=="match")V={v:"home"}}
+  else if(a=="undook"){undo();M=null;modal()}
+  else if(a=="mclose"){M=null;modal();return}
+  else if(a=="msuit"||a=="mtype"||a=="mbel"){
+    
+    M[a.slice(1)]=a=="mbel"?parseInt(v,10):v;modal();return;
+  }
+  else if(a=="mok"){var er=addTake();if(er){$("#merr").textContent=er;return}M=END?{k:"end",txt:END}:null;END=null;modal()}
+  render();window.scrollTo(0,0);
+});
+document.addEventListener("change",function(e){var f=e.target;if(f&&f.id=="bfile"&&f.files&&f.files[0]){var rd=new FileReader();rd.onload=function(){var rr=doRestore(String(rd.result));$("#err").textContent=rr.msg;$("#err").style.color=rr.ok?"var(--acc)":"";if(rr.ok)render()};rd.onerror=function(){$("#err").textContent="Lecture du fichier impossible."};rd.readAsText(f.files[0])}});
+document.addEventListener("paste",function(e){var t=e.target;if(t&&t.tagName=="TEXTAREA")setTimeout(function(){t.blur()},80)});
+window.addEventListener("afterprint",function(){if(PR){PR=0;render()}});
+document.body.addEventListener("input",function(e){if(e.target.id=="msc")prev()});
+document.body.addEventListener("keydown",function(e){if(e.key=="Enter"&&e.target.id=="pname")document.querySelector('[data-a="addp"]').click()});
+render();
+</script>
+<script>if("serviceWorker" in navigator&&/^https?:/.test(location.protocol)){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})})}</script>
+</body>
+</html>
