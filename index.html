@@ -67,9 +67,10 @@ label{font-weight:600;font-size:.95rem}
 <div id="app"></div>
 <div id="modal"></div>
 <script>
+var DB="https://belotehistory-default-rtdb.europe-west1.firebasedatabase.app",CLOUD=!window.claude&&/^https?:/.test(location.protocol)&&!/claude/i.test(location.hostname);
 var S=load(),V={v:"home"},M=null,TAB="count",MSG="";
 function load(){try{return JSON.parse(localStorage.getItem("belote1"))||{players:[],matches:[]}}catch(e){return{players:[],matches:[]}}}
-function save(){try{localStorage.setItem("belote1",JSON.stringify(S))}catch(e){}}
+function save(){if(CLOUD){cacheS();flush();return}try{localStorage.setItem("belote1",JSON.stringify(S))}catch(e){}}
 var $=function(s){return document.querySelector(s)};
 var pn=function(id){var p=S.players.find(function(p){return p.id==id});return p?p.name:"?"};
 var uid=function(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)};
@@ -110,7 +111,7 @@ function home(){
     return'<div style="display:flex;gap:8px;align-items:center"><button class="item" style="flex:1" data-a="open" data-v="'+m.id+'"><span><b>'+esc(m.name)+'</b><br><span class="small">'+esc(pn(m.teams[0][0]))+" & "+esc(pn(m.teams[0][1]))+" vs "+esc(pn(m.teams[1][0]))+" & "+esc(pn(m.teams[1][1]))+'</span></span><span class="num">'+w[0]+" – "+w[1]+'</span></button><button class="btn alt sm" style="width:52px;margin:0" data-a="delm" data-v="'+m.id+'" aria-label="Supprimer le match">✕</button></div>'
   };
   var all=S.matches.slice().reverse(),cur=all.filter(function(m){return!m.closed}),dn=all.filter(function(m){return m.closed});
-  return'<div style="display:flex;justify-content:space-between;align-items:center;margin:28px 0 6px;gap:8px"><h1>Belote</h1><div style="display:flex;gap:6px">'+ic("go","newm","Nouveau match",'<path d="M12 5v14M5 12h14"/>',1)+ic("go","players","Joueurs",'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/>')+ic("bex","","Exporter",'<path d="M12 15V4M7.5 8.5L12 4l4.5 4.5M5 14v5h14v-5"/>')+ic("bim","","Importer",'<path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M5 14v5h14v-5"/>')+'</div></div><p class="small" style="margin:0 0 6px">Comptez les prises, suivez les statistiques.</p>'+(cur.length?"<h3>Parties en cours</h3>"+cur.map(item).join(""):"")+(dn.length?"<h3>Parties terminées</h3>"+dn.map(item).join(""):"")+(all.length?"":'<p class="small">Aucun match pour le moment : touchez + pour en créer un.</p>');
+  return'<div style="display:flex;justify-content:space-between;align-items:center;margin:28px 0 6px;gap:8px"><h1>Belote</h1><div style="display:flex;gap:6px">'+ic("go","newm","Nouveau match",'<path d="M12 5v14M5 12h14"/>',1)+ic("go","players","Joueurs",'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/>')+ic("bex","","Exporter",'<path d="M12 15V4M7.5 8.5L12 4l4.5 4.5M5 14v5h14v-5"/>')+ic("bim","","Importer",'<path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M5 14v5h14v-5"/>')+'</div></div>'+(CLOUD?sessionBar():'<p class="small" style="margin:0 0 6px">Comptez les prises, suivez les statistiques.</p>')+(cur.length?"<h3>Parties en cours</h3>"+cur.map(item).join(""):"")+(dn.length?"<h3>Parties terminées</h3>"+dn.map(item).join(""):"")+(all.length?"":'<p class="small">Aucun match pour le moment : touchez + pour en créer un.</p>');
 }
 function players(){
   var l=S.players.map(function(p){return'<div style="display:flex;gap:8px;align-items:center"><button class="item" style="flex:1" data-a="pd" data-v="'+p.id+'"><b>'+esc(p.name)+'</b><span class="small">Statistiques ›</span></button><button class="btn alt sm" style="width:52px;margin:0" data-a="delp" data-v="'+p.id+'" aria-label="Supprimer le joueur">✕</button></div>'}).join("")||'<p class="small">Aucun joueur. Ajoutez le premier ci-dessus.</p>';
@@ -200,6 +201,8 @@ function overview(m){
 }
 
 /* ---------- modal de prise ---------- */
+var XB='<button class="btn alt ic" data-a="mclose" aria-label="Fermer" title="Fermer">✕</button>';
+var CB='<button class="btn alt ic" data-a="bcopy" aria-label="Copier le texte" title="Copier le texte"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg></button>';
 function modal(){
   syncHist();
   var el=$("#modal");
@@ -211,10 +214,14 @@ function modal(){
     h='<h2>Supprimer '+esc(pn(M.id))+' ?</h2><p>Le joueur sera retiré de la liste.</p><button class="btn" data-a="delpok">Oui, supprimer</button><button class="btn alt" data-a="mclose">Non, garder</button>';
   }else if(M.k=="info"){
     h='<h2>Suppression impossible</h2><p>'+M.txt+'</p><button class="btn" data-a="mclose">Compris</button>';
+  }else if(M.k=="snew"){
+    h='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><h2 style="margin:0">Nouvelle session</h2>'+XB+'</div><label>Titre de la session</label><input type="text" id="snm" maxlength="40" placeholder="Belote 2025" style="margin-bottom:6px"><label>Code d’accès (4 caractères minimum)</label><input type="text" id="snc" maxlength="40" autocomplete="off" autocapitalize="off" enterkeyhint="done" style="margin-bottom:6px"><p class="small">Les autres joueurs devront saisir ce code pour rejoindre la session. Notez-le : il ne peut pas être retrouvé.</p><div class="err" id="serr"></div><button class="btn" data-a="sok">Créer la session</button>';
+  }else if(M.k=="scode"){
+    h='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><h2 style="margin:0">Code d’accès</h2>'+XB+'</div><p class="small">Session « '+esc(M.name)+' ». Demandez le code à la personne qui l’a créée.</p><input type="text" id="scd" maxlength="40" autocomplete="off" autocapitalize="off" enterkeyhint="go" style="margin-bottom:6px"><div class="err" id="serr2"></div><button class="btn" data-a="scok">Rejoindre la session</button>';
   }else if(M.k=="bex"){
-    h='<h2>Exporter</h2><button class="btn" data-a="bdl">Télécharger un fichier</button><p class="small">Ou copiez le texte de la sauvegarde :</p><textarea id="bout" rows="2" readonly style="'+TA+'">'+enc()+'</textarea><button class="btn alt" data-a="bcopy">Copier le texte</button><div class="small" id="bmsg"></div><button class="btn alt" data-a="mclose">Fermer</button>';
+    h='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><h2 style="margin:0">Exporter</h2>'+XB+'</div><button class="btn" data-a="bdl">Télécharger un fichier</button><div style="display:flex;align-items:center;gap:8px;margin-top:8px"><p class="small" style="margin:0;flex:1">Ou copiez le texte de la sauvegarde :</p>'+CB+'</div><textarea id="bout" rows="2" readonly style="'+TA+'">'+enc()+'</textarea><div class="small" id="bmsg"></div>';
   }else if(M.k=="bim"){
-    h='<h2>Importer</h2><label class="btn" style="cursor:pointer;text-align:center;line-height:56px;color:var(--onacc);font-size:1.1rem;font-weight:700">Choisir un fichier<input type="file" id="bfile" accept=".json,.txt,application/json,text/plain" style="display:none"></label><p class="small">Ou collez le texte de la sauvegarde :</p><textarea id="btxt" rows="3" style="'+TA+'"></textarea><div class="err" id="err"></div><button class="btn alt" data-a="brest">Restaurer le texte</button><button class="btn alt" data-a="oldimp">Importer d’anciennes parties (texte avec scores)</button><button class="btn alt" data-a="mclose">Fermer</button>';
+    h='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><h2 style="margin:0">Importer</h2>'+XB+'</div><label class="btn" style="cursor:pointer;text-align:center;line-height:56px;color:var(--onacc);font-size:1.1rem;font-weight:700">Choisir un fichier<input type="file" id="bfile" accept=".json,.txt,application/json,text/plain" style="display:none"></label><p class="small">Ou collez le texte de la sauvegarde :</p><textarea id="btxt" rows="3" style="'+TA+'"></textarea><div class="err" id="err"></div><button class="btn alt" data-a="brest">Restaurer le texte</button><button class="btn alt" data-a="oldimp">Importer d’anciennes parties (texte avec scores)</button>';
   }else if(M.k=="reset"){
     h='<h2>Réinitialiser la partie en cours ?</h2><p>Les prises de la partie en cours seront effacées et les scores remis à 0. Les parties terminées ne changent pas.</p><button class="btn" data-a="resetok">Oui, réinitialiser</button><button class="btn alt" data-a="mclose">Non, garder</button>';
   }else if(M.k=="close"){
@@ -413,10 +420,167 @@ function exportPdf(){
   saveFile(name,doc.output("blob")).catch(function(){fail("Le téléchargement du PDF a échoué.")});
 }
 
+/* ---------- synchronisation Firebase (sessions partagées) ---------- */
+var SID="",SNAME="",KEY="",SESS=[],LAST={},FL=0,ONLINE=true,ERR="",ES=null,TM=0,SIG="";
+function cj(o){if(o===null||typeof o!="object")return JSON.stringify(o);if(Array.isArray(o))return"["+o.map(cj).join(",")+"]";return"{"+Object.keys(o).filter(function(k){return o[k]!==undefined}).sort().map(function(k){return JSON.stringify(k)+":"+cj(o[k])}).join(",")+"}"}
+function toArr(x){if(!x)return[];return Array.isArray(x)?x:Object.keys(x).sort(function(a,b){return a-b}).map(function(k){return x[k]})}
+function normP(p){return{id:p.id,name:p.name}}
+function normM(m){
+  m=JSON.parse(JSON.stringify(m));
+  m.teams=toArr(m.teams).map(toArr);
+  m.games=toArr(m.games).map(function(g){g.takes=toArr(g.takes);if(g.final)g.final=toArr(g.final);return g});
+  return m;
+}
+function snapOf(st){var o={};st.players.forEach(function(p){o["p/"+p.id]=cj(normP(p))});st.matches.forEach(function(m){o["m/"+m.id]=cj(normM(m))});return o}
+function fromDb(d){
+  d=d||{};var ps=d.players||{},ms=d.matches||{};
+  return{players:Object.keys(ps).sort().map(function(k){return{id:k,name:ps[k].name}}),matches:Object.keys(ms).sort().map(function(k){var m=normM(ms[k]);m.id=k;return m})};
+}
+function cacheS(){try{if(SID)localStorage.setItem("belote_c_"+SID,JSON.stringify(S))}catch(e){}}
+function saveLast(){try{if(SID)localStorage.setItem("belote_l_"+SID,JSON.stringify(LAST))}catch(e){}}
+function cacheLoad(){try{var d=JSON.parse(localStorage.getItem("belote_c_"+SID));if(d&&d.players&&d.matches)return{players:d.players,matches:d.matches.map(normM)}}catch(e){}return{players:[],matches:[]}}
+function loadLast(){try{return JSON.parse(localStorage.getItem("belote_l_"+SID))||{}}catch(e){return{}}}
+function diff(){var cur=snapOf(S),ch=[],k;for(k in cur)if(cur[k]!==LAST[k])ch.push(k);for(k in LAST)if(!(k in cur))ch.push(k);return{cur:cur,ch:ch}}
+function isDirty(){return diff().ch.length>0}
+function setStatus(ok){
+  ONLINE=ok;if(ok)ERR="";
+  var g=cj(SESS)+ONLINE+ERR+SID;
+  if(g!=SIG){SIG=g;if(V.v=="home"&&!(document.activeElement&&document.activeElement.id=="ssel"))render()}
+}
+function errMsg(e){return(e==401||e==403)?"Accès refusé : vérifiez les règles de la base Firebase.":""}
+function softRender(){if(["home","players","pdetail","match"].indexOf(V.v)>=0)render()}
+function flush(){
+  if(!CLOUD||!SID||FL)return;
+  var d=diff();if(!d.ch.length)return;
+  FL=1;var sid=SID,key=KEY,okAll=true;
+  var ps=d.ch.map(function(k){
+    if(sid!=SID)return Promise.resolve();
+    var coll=k.charAt(0)=="p"?"players":"matches",id=k.slice(2),url=DB+"/session_data/"+key+"/"+coll+"/"+id+".json";
+    if(k in d.cur){
+      var ent=(k.charAt(0)=="p"?S.players:S.matches).find(function(x){return x.id==id});
+      if(!ent)return Promise.resolve();
+      return fetch(url,{method:"PUT",body:JSON.stringify(ent)}).then(function(r){if(!r.ok)throw r.status;LAST[k]=d.cur[k]});
+    }
+    return fetch(url,{method:"DELETE"}).then(function(r){if(!r.ok)throw r.status;delete LAST[k]});
+  });
+  Promise.all(ps.map(function(p){return p.catch(function(e){okAll=false;ERR=errMsg(e)})})).then(function(){
+    FL=0;saveLast();setStatus(okAll);
+    if(sid==SID&&isDirty())setTimeout(flush,okAll?200:8000);
+  });
+}
+function fetchSession(){
+  if(!CLOUD||!SID)return Promise.resolve();
+  var sid=SID,key=KEY;
+  return fetch(DB+"/session_data/"+key+".json").then(function(r){if(!r.ok)throw r.status;return r.json()}).then(function(d){
+    if(sid!=SID)return;
+    if(isDirty()){flush();return}
+    var ns=fromDb(d);
+    LAST=snapOf(ns);saveLast();
+    if(cj(snapOf(S))!=cj(LAST)){S=ns;cacheS();softRender()}
+    setStatus(true);
+  }).catch(function(e){ERR=errMsg(e);setStatus(false)});
+}
+function fetchSessions(){
+  if(!CLOUD)return Promise.resolve();
+  return fetch(DB+"/sessions.json").then(function(r){if(!r.ok)throw r.status;return r.json()}).then(function(d){
+    d=d||{};
+    SESS=Object.keys(d).map(function(k){return{id:k,name:(d[k]&&d[k].name)||k,created:(d[k]&&d[k].created)||0,chk:(d[k]&&d[k].chk)||""}}).sort(function(a,b){return a.created-b.created});
+    setStatus(true);
+  }).catch(function(e){ERR=errMsg(e);setStatus(false)});
+}
+function sched(){clearTimeout(TM);TM=setTimeout(function(){if(isDirty())flush();else fetchSession()},400)}
+function startStream(){
+  try{if(ES){ES.close();ES=null}}catch(e){}
+  if(!CLOUD||!SID||!window.EventSource)return;
+  try{ES=new EventSource(DB+"/session_data/"+KEY+".json");ES.addEventListener("put",sched);ES.addEventListener("patch",sched)}catch(e){}
+}
+function sname(){var x=SESS.find(function(s){return s.id==SID});return x?x.name:SNAME}
+function switchSession(id,name,key){
+  SID=id;SNAME=name||"";KEY=key||id;
+  try{localStorage.setItem("belote_sid",SID);localStorage.setItem("belote_sname",SNAME)}catch(e){}
+  S=cacheLoad();LAST=loadLast();V={v:"home"};TAB="count";MSG="";
+  startStream();fetchSession();
+}
+function legacy(){try{if(localStorage.getItem("belote_migrated"))return null;var d=JSON.parse(localStorage.getItem("belote1"));if(d&&d.players&&d.matches&&(d.matches.length||d.players.length))return d}catch(e){}return null}
+function migBar(){
+  var d=SID&&legacy();if(!d)return"";
+  return'<div class="card"><b>Données de cet appareil trouvées</b><p class="small" style="margin:4px 0 8px">'+d.players.length+" joueur(s) et "+d.matches.length+" match(s) sont enregistrés sur ce téléphone. Les envoyer dans la session « "+esc(sname())+' » ?</p><div style="display:flex;gap:8px"><button class="btn sm" style="margin:0" data-a="migok">Envoyer</button><button class="btn alt sm" style="margin:0" data-a="migno">Ignorer</button></div></div>';
+}
+function sessionBar(){
+  var opts=SESS.slice();
+  if(SID&&!opts.some(function(x){return x.id==SID}))opts.push({id:SID,name:SNAME||SID});
+  var o=(SID?"":'<option value="">Choisir une session…</option>')+opts.map(function(x){return'<option value="'+x.id+'"'+(x.id==SID?" selected":"")+">"+(x.chk?"🔒 ":"")+esc(x.name)+"</option>"}).join("");
+  var st=!SID?"Choisissez ou créez une session pour commencer.":ERR?ERR:ONLINE?"Synchronisé":"Hors ligne : les modifications restent sur l’appareil et partiront au retour du réseau.";
+  return'<div style="display:flex;gap:8px;margin:0 0 4px"><select id="ssel" style="flex:1;margin:0" aria-label="Session">'+o+'</select><button class="btn sm ic" data-a="snew" aria-label="Nouvelle session" title="Nouvelle session"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div><div class="small" style="margin:0 0 8px">'+st+"</div>"+migBar();
+}
+function keysOf(sid,code){
+  var enc=new TextEncoder();
+  return crypto.subtle.importKey("raw",enc.encode(code),"PBKDF2",false,["deriveBits"]).then(function(k){
+    return crypto.subtle.deriveBits({name:"PBKDF2",salt:enc.encode("belote:"+sid),iterations:150000,hash:"SHA-256"},k,512);
+  }).then(function(b){
+    var h=Array.prototype.map.call(new Uint8Array(b),function(x){return("0"+x.toString(16)).slice(-2)}).join("");
+    return{chk:h.slice(0,32),key:sid+"-"+h.slice(64,96)};
+  });
+}
+function getKeys(){try{return JSON.parse(localStorage.getItem("belote_keys"))||{}}catch(e){return{}}}
+function setKey(sid,key){try{var k=getKeys();k[sid]=key;localStorage.setItem("belote_keys",JSON.stringify(k))}catch(e){}}
+function chooseSession(id){
+  var s=SESS.find(function(x){return x.id==id});if(!s)return;
+  var ks=getKeys();
+  if(!s.chk){switchSession(id,s.name,id);render();return}
+  if(ks[id]){switchSession(id,s.name,ks[id]);render();return}
+  M={k:"scode",sid:id,name:s.name};modal();render();
+}
+function joinSession(){
+  var code=$("#scd").value.trim(),s=SESS.find(function(x){return x.id==M.sid});
+  if(!s)return;
+  if(!(window.crypto&&crypto.subtle)){$("#serr2").textContent="Vérification impossible : page non sécurisée.";return}
+  $("#serr2").textContent="Vérification…";
+  keysOf(s.id,code).then(function(k){
+    if(k.chk!==s.chk){$("#serr2").textContent="Code incorrect.";return}
+    setKey(s.id,k.key);switchSession(s.id,s.name,k.key);M=null;modal();render();
+  }).catch(function(){$("#serr2").textContent="Vérification impossible sur cet appareil."});
+}
+function createSession(){
+  var nm=$("#snm").value.trim(),code=$("#snc").value.trim();
+  if(!nm){$("#serr").textContent="Donnez un titre à la session.";return}
+  if(code.length<4){$("#serr").textContent="Le code d’accès doit faire au moins 4 caractères.";return}
+  if(!(window.crypto&&crypto.subtle)){$("#serr").textContent="Code impossible à protéger : page non sécurisée (https requis).";return}
+  $("#serr").textContent="Création…";
+  var id=uid(),created=Date.now();
+  keysOf(id,code).then(function(k){
+    return fetch(DB+"/sessions/"+id+".json",{method:"PUT",body:JSON.stringify({name:nm,created:created,chk:k.chk})}).then(function(r){
+      if(!r.ok)throw r.status;
+      SESS.push({id:id,name:nm,created:created,chk:k.chk});
+      setKey(id,k.key);switchSession(id,nm,k.key);M=null;modal();render();
+    });
+  }).catch(function(e){$("#serr").textContent=errMsg(e)||"Création impossible : vérifiez la connexion."});
+}
+function migrate(ok){
+  if(ok){var d=legacy();if(d){d.players.forEach(function(p){if(!S.players.some(function(x){return x.id==p.id}))S.players.push(p)});d.matches.forEach(function(m){if(!S.matches.some(function(x){return x.id==m.id}))S.matches.push(normM(m))});save()}}
+  try{localStorage.setItem("belote_migrated","1")}catch(e){}
+}
+function poll(){if(document.hidden)return;if(isDirty())flush();else fetchSession();fetchSessions()}
+function bootCloud(){
+  fetchSessions();
+  if(SID){fetchSession();startStream()}
+  setInterval(poll,15000);
+  document.addEventListener("visibilitychange",function(){if(!document.hidden)poll()});
+  window.addEventListener("online",poll);
+}
+if(CLOUD){
+  try{SID=localStorage.getItem("belote_sid")||"";SNAME=localStorage.getItem("belote_sname")||""}catch(e){}
+  KEY=getKeys()[SID]||SID;
+  S=SID?cacheLoad():{players:[],matches:[]};
+  LAST=SID?loadLast():{};
+}
+
 /* ---------- événements ---------- */
 document.body.addEventListener("click",function(e){
+  if(e.target.id=="modal"&&M&&(M.k=="bex"||M.k=="bim"||M.k=="snew"||M.k=="scode")){M=null;modal();return}
   var el=e.target.closest("[data-a]");if(!el)return;
   var a=el.dataset.a,v=el.dataset.v;
+  if(CLOUD&&!SID&&((a=="go"&&(v=="newm"||v=="players"||v=="imp"))||a=="bex"||a=="bim")){M={k:"info",txt:"Choisissez ou créez d’abord une session."};modal();return}
   if(a=="go"){V={v:v};TAB="count";MSG="";PR=0}
   else if(a=="addp"){var n=$("#pname").value.trim();if(n){S.players.push({id:uid(),name:n});save()}}
   else if(a=="pd")V={v:"pdetail",pid:v};
@@ -435,6 +599,11 @@ document.body.addEventListener("click",function(e){
   else if(a=="unpr"){PR=0}
   else if(a=="plus"){M={k:"take",taker:v,suit:"",type:"std",score:"",bel:0};modal();return}
   else if(a=="bcopy"){var bt=$("#bout"),bok=false;bt.focus();bt.select();try{bt.setSelectionRange(0,bt.value.length)}catch(x){}try{bok=document.execCommand("copy")}catch(x){}try{navigator.clipboard.writeText(bt.value);bok=true}catch(x){}$("#bmsg").textContent=bok?"Copié ("+bt.value.length+" caractères).":"Texte sélectionné : copiez-le manuellement.";return}
+  else if(a=="snew"){M={k:"snew"};modal();return}
+  else if(a=="sok"){createSession();return}
+  else if(a=="scok"){joinSession();return}
+  else if(a=="migok"){migrate(1)}
+  else if(a=="migno"){migrate(0)}
   else if(a=="oldimp"){M=null;modal();V={v:"imp"}}
   else if(a=="bdl"){
     var fn="belote-sauvegarde-"+new Date().toISOString().slice(0,10)+".json";
@@ -472,8 +641,10 @@ document.addEventListener("change",function(e){var f=e.target;if(f&&f.id=="bfile
 document.addEventListener("paste",function(e){var t=e.target;if(t&&t.tagName=="TEXTAREA")setTimeout(function(){t.blur()},80)});
 window.addEventListener("afterprint",function(){if(PR){PR=0;render()}});
 document.body.addEventListener("input",function(e){if(e.target.id=="msc")prev()});
-document.body.addEventListener("keydown",function(e){if(e.key=="Enter"&&e.target.id=="pname")document.querySelector('[data-a="addp"]').click()});
+document.body.addEventListener("keydown",function(e){if(e.key=="Enter"){var tg=e.target.id,bt=tg=="pname"?"addp":tg=="snm"||tg=="snc"?"sok":tg=="scd"?"scok":"";if(bt)document.querySelector('[data-a="'+bt+'"]').click()}});
+document.addEventListener("change",function(e){var f=e.target;if(f&&f.id=="ssel"&&f.value){chooseSession(f.value)}});
 render();
+if(CLOUD)bootCloud();
 </script>
 <script>if("serviceWorker" in navigator&&/^https?:/.test(location.protocol)){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})})}</script>
 </body>
