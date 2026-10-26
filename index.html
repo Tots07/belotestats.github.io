@@ -111,7 +111,7 @@ function home(){
     return'<div style="display:flex;gap:8px;align-items:center"><button class="item" style="flex:1" data-a="open" data-v="'+m.id+'"><span><b>'+esc(m.name)+'</b><br><span class="small">'+esc(pn(m.teams[0][0]))+" & "+esc(pn(m.teams[0][1]))+" vs "+esc(pn(m.teams[1][0]))+" & "+esc(pn(m.teams[1][1]))+'</span></span><span class="num">'+w[0]+" – "+w[1]+'</span></button><button class="btn alt sm" style="width:52px;margin:0" data-a="delm" data-v="'+m.id+'" aria-label="Supprimer le match">✕</button></div>'
   };
   var all=S.matches.slice().reverse(),cur=all.filter(function(m){return!m.closed}),dn=all.filter(function(m){return m.closed});
-  return'<div style="display:flex;justify-content:space-between;align-items:center;margin:28px 0 6px;gap:8px"><h1>Belote</h1><div style="display:flex;gap:6px">'+ic("go","newm","Nouveau match",'<path d="M12 5v14M5 12h14"/>',1)+ic("go","players","Joueurs",'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/>')+ic("bex","","Exporter",'<path d="M12 15V4M7.5 8.5L12 4l4.5 4.5M5 14v5h14v-5"/>')+ic("bim","","Importer",'<path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M5 14v5h14v-5"/>')+'</div></div>'+(CLOUD?sessionBar():'<p class="small" style="margin:0 0 6px">Comptez les prises, suivez les statistiques.</p>')+(cur.length?"<h3>Parties en cours</h3>"+cur.map(item).join(""):"")+(dn.length?"<h3>Parties terminées</h3>"+dn.map(item).join(""):"")+(all.length?"":'<p class="small">Aucun match pour le moment : touchez + pour en créer un.</p>');
+  return'<div style="display:flex;justify-content:space-between;align-items:center;margin:28px 0 6px;gap:8px"><h1>Belote</h1><div style="display:flex;gap:6px">'+ic("go","newm","Nouveau match",'<path d="M12 5v14M5 12h14"/>',1)+ic("go","players","Joueurs",'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/>')+ic("bex","","Exporter",'<path d="M12 15V4M7.5 8.5L12 4l4.5 4.5M5 14v5h14v-5"/>')+ic("bim","","Importer",'<path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M5 14v5h14v-5"/>')+'</div></div>'+(CLOUD?sessionBar():'<p class="small" style="margin:0 0 6px">Comptez les prises, suivez les statistiques.</p>')+(cur.length?"<h3>Parties en cours</h3>"+cur.map(item).join(""):"")+(dn.length?"<h3>Parties terminées</h3>"+dn.map(item).join(""):"")+(all.length?"":'<p class="small">Aucun match pour le moment : touchez + pour en créer un.</p>')+'<p class="small" style="margin-top:28px;text-align:center">Version 26.10-d · '+(CLOUD?"mode synchronisé (sessions)":"mode local")+"</p>";
 }
 function players(){
   var l=S.players.map(function(p){return'<div style="display:flex;gap:8px;align-items:center"><button class="item" style="flex:1" data-a="pd" data-v="'+p.id+'"><b>'+esc(p.name)+'</b><span class="small">Statistiques ›</span></button><button class="btn alt sm" style="width:52px;margin:0" data-a="delp" data-v="'+p.id+'" aria-label="Supprimer le joueur">✕</button></div>'}).join("")||'<p class="small">Aucun joueur. Ajoutez le premier ci-dessus.</p>';
@@ -196,8 +196,10 @@ function overview(m){
   if(!done.length)return h+'<div class="card small">Terminez une partie pour afficher ces stats.</div>';
   var nt=done.map(function(g){return g.takes.length}),sc=[],gaps=done.map(function(g){var s=gScore(g);sc.push(s[0],s[1]);return{s:s,d:Math.abs(s[0]-s[1])}});
   gaps.sort(function(a,b){return a.d-b.d});
+  var c4=SUITS.map(function(x){return all.filter(function(t){return t.suit==x[1]}).length}),t4=c4.reduce(function(a,b){return a+b},0);
+  var sl=SUITS.map(function(x,i){return(x[2]?'<span style="color:#d0453a">'+x[0]+"</span>":x[0])+" "+(t4?pc(c4[i],t4):"25,0 %")}).join("&nbsp;&nbsp;&nbsp;");
   var fmt=function(x){var a=x.s[0]>=x.s[1]?0:1,b=1-a;return nm(a)+" "+x.s[a]+" – "+nm(b)+" "+x.s[b]};
-  return h+'<div class="card">'+ln((nt.reduce(function(a,b){return a+b},0)/nt.length).toFixed(1).replace(".",",")+" prises en moyenne par partie (Max : "+Math.max.apply(0,nt)+" - Min : "+Math.min.apply(0,nt)+")")+ln("Score max : "+Math.max.apply(0,sc)+" - Score min : "+Math.min.apply(0,sc))+ln("Plus grand écart : "+fmt(gaps[gaps.length-1]))+ln("Plus petit écart : "+fmt(gaps[0]))+"</div>";
+  return h+'<div class="card">'+ln((nt.reduce(function(a,b){return a+b},0)/nt.length).toFixed(1).replace(".",",")+" prises en moyenne par partie (Max : "+Math.max.apply(0,nt)+" - Min : "+Math.min.apply(0,nt)+")")+ln("Score max : "+Math.max.apply(0,sc)+" - Score min : "+Math.min.apply(0,sc))+ln("Plus grand écart : "+fmt(gaps[gaps.length-1]))+ln("Plus petit écart : "+fmt(gaps[0]))+ln(sl)+"</div>";
 }
 
 /* ---------- modal de prise ---------- */
@@ -371,7 +373,7 @@ function saveFile(name,blob){
 /* ---------- export PDF ---------- */
 function pdfTk(t){return pn(t.p)+" "+(t.type=="std"?(t.u?"ok":t.score):t.type=="capot"?"250":t.type=="chute"?"160":"81")}
 function pdfBuild(m,J,withTakes){
-  var cl=function(t){return String(t).replace(/[\u202f\u00a0]/g," ").replace(/[–—]/g,"-").replace(/[’‘]/g,"'").replace(/[«»“”]/g,'"').replace(/[^\x20-\x7E\u00A1-\u00FF]/g,"")};
+  var cl=function(t){return String(t).replace(/♥/g,"Coeur").replace(/♠/g,"Pique").replace(/♦/g,"Carreau").replace(/♣/g,"Trefle").replace(/[\u202f\u00a0]/g," ").replace(/[–—]/g,"-").replace(/[’‘]/g,"'").replace(/[«»“”]/g,'"').replace(/[^\x20-\x7E\u00A1-\u00FF]/g,"")};
   var doc=new J({unit:"mm",format:"a4"}),W=210,H=297,mg=14,y=mg+4;
   var wr=function(t,w){return doc.splitTextToSize(cl(t),w)};
   doc.setFont("helvetica","bold");doc.setFontSize(16);doc.text(cl(m.name),mg,y);y+=8;
