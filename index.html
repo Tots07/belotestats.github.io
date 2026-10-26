@@ -50,6 +50,7 @@ label{font-weight:600;font-size:.95rem}
 #modal .sheet{background:var(--bg);width:100%;max-width:520px;max-height:92%;overflow:auto;border-radius:20px 20px 0 0;padding:18px 14px calc(18px + env(safe-area-inset-bottom,0px))}
 #modal .sheet{padding:12px 12px calc(12px + env(safe-area-inset-bottom,0px))}#modal h2{font-size:1.15rem;margin:0 0 4px}#modal label{font-size:.8rem;color:var(--mut)}#modal .seg{margin:3px 0 8px;gap:6px}#modal .seg button{min-height:42px;font-size:.95rem}#modal .err{min-height:0}#modal p{margin:6px 0}
 .ic{width:44px!important;min-height:44px!important;margin:0!important;padding:0!important;display:inline-flex;align-items:center;justify-content:center}
+.ic.ic4{width:auto!important}
 .msg{background:var(--acc);color:var(--onacc);border-radius:12px;padding:10px 14px;margin:10px 0;font-weight:600}
 .err{color:var(--b);font-weight:600;min-height:1.4em}
 @media print{:root:root:root{--bg:#fff;--fg:#000;--card:#fff;--line:#999;--mut:#444;--a:#a8690f;--b:#b0382f;--acc:#1f5c43}.card{break-inside:avoid}.pbreak{break-before:page;page-break-before:always}.noprint,.tabs,.back,button{display:none!important}body{background:#fff;color:#000}.card,.score>div{background:#fff;color:#000;border-color:#999}}
@@ -67,7 +68,7 @@ label{font-weight:600;font-size:.95rem}
 <div id="app"></div>
 <div id="modal"></div>
 <script>
-var DB="https://belotehistory-default-rtdb.europe-west1.firebasedatabase.app",CLOUD=!window.claude&&/^https?:/.test(location.protocol)&&!/claude/i.test(location.hostname);
+var DB="https://belotehistory-default-rtdb.europe-west1.firebasedatabase.app",CLOUD=!window.claude&&/^https?:/.test(location.protocol);
 var S=load(),V={v:"home"},M=null,TAB="count",MSG="";
 function load(){try{return JSON.parse(localStorage.getItem("belote1"))||{players:[],matches:[]}}catch(e){return{players:[],matches:[]}}}
 function save(){if(CLOUD){cacheS();flush();return}try{localStorage.setItem("belote1",JSON.stringify(S))}catch(e){}}
@@ -105,13 +106,13 @@ function render(){
   $("#app").innerHTML=h;syncHist();
 }
 function home(){
-  var ic=function(a,v,l,path,pri){return'<button class="btn '+(pri?"":"alt ")+'sm ic" data-a="'+a+'"'+(v?' data-v="'+v+'"':"")+' aria-label="'+l+'" title="'+l+'"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+path+"</svg></button>"};
+  var ic=function(a,v,l,path,pri){return'<button class="btn '+(pri?"":"alt ")+'sm ic ic4" data-a="'+a+'"'+(v?' data-v="'+v+'"':"")+' aria-label="'+l+'" title="'+l+'"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+path+"</svg></button>"};
   var item=function(m){
     var w=[0,0];m.games.forEach(function(g){if(g.done){var s=gScore(g);w[s[0]>s[1]?0:1]++}});
     return'<div style="display:flex;gap:8px;align-items:center"><button class="item" style="flex:1" data-a="open" data-v="'+m.id+'"><span><b>'+esc(m.name)+'</b><br><span class="small">'+esc(pn(m.teams[0][0]))+" & "+esc(pn(m.teams[0][1]))+" vs "+esc(pn(m.teams[1][0]))+" & "+esc(pn(m.teams[1][1]))+'</span></span><span class="num">'+w[0]+" – "+w[1]+'</span></button><button class="btn alt sm" style="width:52px;margin:0" data-a="delm" data-v="'+m.id+'" aria-label="Supprimer le match">✕</button></div>'
   };
   var all=S.matches.slice().reverse(),cur=all.filter(function(m){return!m.closed}),dn=all.filter(function(m){return m.closed});
-  return'<div style="display:flex;justify-content:space-between;align-items:center;margin:28px 0 6px;gap:8px"><h1>Belote</h1><div style="display:flex;gap:6px">'+ic("go","newm","Nouveau match",'<path d="M12 5v14M5 12h14"/>',1)+ic("go","players","Joueurs",'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/>')+ic("bex","","Exporter",'<path d="M12 15V4M7.5 8.5L12 4l4.5 4.5M5 14v5h14v-5"/>')+ic("bim","","Importer",'<path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M5 14v5h14v-5"/>')+'</div></div>'+(CLOUD?sessionBar():'<p class="small" style="margin:0 0 6px">Comptez les prises, suivez les statistiques.</p>')+(cur.length?"<h3>Parties en cours</h3>"+cur.map(item).join(""):"")+(dn.length?"<h3>Parties terminées</h3>"+dn.map(item).join(""):"")+(all.length?"":'<p class="small">Aucun match pour le moment : touchez + pour en créer un.</p>')+'<p class="small" style="margin-top:28px;text-align:center">Version 26.10-d · '+(CLOUD?"mode synchronisé (sessions)":"mode local")+"</p>";
+  return'<div style="display:flex;align-items:center;margin:20px 0 8px;gap:8px"><h1 style="font-size:1.55rem;white-space:nowrap">BeloteStats</h1>'+sessionBar(0)+'</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:0 0 8px">'+ic("go","newm","Nouveau match",'<path d="M12 5v14M5 12h14"/>',1)+ic("go","players","Joueurs",'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/>')+ic("bex","","Exporter",'<path d="M12 15V4M7.5 8.5L12 4l4.5 4.5M5 14v5h14v-5"/>')+ic("bim","","Importer",'<path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M5 14v5h14v-5"/>')+'</div>'+sessionBar(1)+(cur.length?"<h3>Parties en cours</h3>"+cur.map(item).join(""):"")+(dn.length?"<h3>Parties terminées</h3>"+dn.map(item).join(""):"")+(all.length?"":'<p class="small">Aucun match pour le moment : touchez + pour en créer un.</p>')+'<p class="small" style="margin-top:28px;text-align:center">Version 26.10-f · '+(CLOUD?"mode synchronisé (sessions)":"mode local")+"</p>";
 }
 function players(){
   var l=S.players.map(function(p){return'<div style="display:flex;gap:8px;align-items:center"><button class="item" style="flex:1" data-a="pd" data-v="'+p.id+'"><b>'+esc(p.name)+'</b><span class="small">Statistiques ›</span></button><button class="btn alt sm" style="width:52px;margin:0" data-a="delp" data-v="'+p.id+'" aria-label="Supprimer le joueur">✕</button></div>'}).join("")||'<p class="small">Aucun joueur. Ajoutez le premier ci-dessus.</p>';
@@ -508,12 +509,20 @@ function migBar(){
   var d=SID&&legacy();if(!d)return"";
   return'<div class="card"><b>Données de cet appareil trouvées</b><p class="small" style="margin:4px 0 8px">'+d.players.length+" joueur(s) et "+d.matches.length+" match(s) sont enregistrés sur ce téléphone. Les envoyer dans la session « "+esc(sname())+' » ?</p><div style="display:flex;gap:8px"><button class="btn sm" style="margin:0" data-a="migok">Envoyer</button><button class="btn alt sm" style="margin:0" data-a="migno">Ignorer</button></div></div>';
 }
-function sessionBar(){
-  var opts=SESS.slice();
-  if(SID&&!opts.some(function(x){return x.id==SID}))opts.push({id:SID,name:SNAME||SID});
-  var o=(SID?"":'<option value="">Choisir une session…</option>')+opts.map(function(x){return'<option value="'+x.id+'"'+(x.id==SID?" selected":"")+">"+(x.chk?"🔒 ":"")+esc(x.name)+"</option>"}).join("");
+function sessionBar(part){
+  var plus='<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
+  if(!CLOUD){
+    if(!part)return'<select disabled style="flex:1;min-width:0;margin:0;opacity:.6" aria-label="Session"><option>Session locale</option></select><button class="btn sm ic" disabled style="opacity:.5" aria-label="Nouvelle session">'+plus+'</button>';
+    return'<div class="small" style="margin:0 0 8px">Les sessions partagées ne fonctionnent que sur la version GitHub Pages. Ici, les données restent sur cet appareil.</div>';
+  }
+  if(!part){
+    var opts=SESS.slice();
+    if(SID&&!opts.some(function(x){return x.id==SID}))opts.push({id:SID,name:SNAME||SID});
+    var o=(SID?"":'<option value="">Choisir une session…</option>')+opts.map(function(x){return'<option value="'+x.id+'"'+(x.id==SID?" selected":"")+">"+(x.chk?"🔒 ":"")+esc(x.name)+"</option>"}).join("");
+    return'<select id="ssel" style="flex:1;min-width:0;margin:0" aria-label="Session">'+o+'</select><button class="btn sm ic" data-a="snew" aria-label="Nouvelle session" title="Nouvelle session">'+plus+'</button>';
+  }
   var st=!SID?"Choisissez ou créez une session pour commencer.":ERR?ERR:ONLINE?"Synchronisé":"Hors ligne : les modifications restent sur l’appareil et partiront au retour du réseau.";
-  return'<div style="display:flex;gap:8px;margin:0 0 4px"><select id="ssel" style="flex:1;margin:0" aria-label="Session">'+o+'</select><button class="btn sm ic" data-a="snew" aria-label="Nouvelle session" title="Nouvelle session"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div><div class="small" style="margin:0 0 8px">'+st+"</div>"+migBar();
+  return'<div class="small" style="margin:0 0 8px">'+st+"</div>"+migBar();
 }
 function keysOf(sid,code){
   var enc=new TextEncoder();
